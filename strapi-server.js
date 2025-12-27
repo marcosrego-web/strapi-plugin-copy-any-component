@@ -139,7 +139,7 @@ const controller = ({ strapi }) => ({
     }
   },
 
-  // 🔧 Yapılandırmayı güncelle (kalıcı olarak Strapi Store'a kaydet)
+  // 🔧 Update configuration (save permanently to Strapi Store)
   async updateConfig(ctx) {
     try {
       const { contentType, dynamicZoneField } = ctx.request.body;
@@ -188,10 +188,10 @@ const controller = ({ strapi }) => ({
       
       ctx.body = {
         data: {
-          message: 'Yapılandırma başarıyla kaydedildi!',
+          message: 'Configuration saved successfully!',
           contentType,
           dynamicZoneField,
-          note: 'Bu ayar kalıcı olarak kaydedildi. Strapi yeniden başlatıldığında da geçerli olacak.',
+          note: 'This setting has been saved permanently. It will remain valid even after Strapi restarts.',
         },
       };
     } catch (error) {
@@ -207,17 +207,38 @@ const controller = ({ strapi }) => ({
       const contentType = pluginConfig.contentType || 'api::page.page';
       const dynamicZoneField = pluginConfig.dynamicZoneField || 'sections';
       
-      const pages = await strapi.entityService.findMany(contentType, {
-        populate: [dynamicZoneField],
-      });
+      // Content type'ın kind'ını kontrol et
+      const contentTypeModel = strapi.contentTypes[contentType];
+      const isSingleType = contentTypeModel?.kind === 'singleType';
+      
+      let pages;
+      if (isSingleType) {
+        // SingleType için findOne kullan
+        try {
+          const page = await strapi.entityService.findOne(contentType, {
+            populate: [dynamicZoneField],
+          });
+          pages = page ? [page] : [];
+        } catch (error) {
+          // Eğer singleType henüz oluşturulmamışsa boş array döndür
+          pages = [];
+        }
+      } else {
+        // CollectionType için findMany kullan
+        pages = await strapi.entityService.findMany(contentType, {
+          populate: [dynamicZoneField],
+        });
+      }
+      
       const formattedPages = pages.map((page) => ({
         ...page,
         documentId: page.documentId || page.id,
       }));
       ctx.body = { data: formattedPages };
     } catch (error) {
+      strapi.log.error("Error in getPages:", error);
       ctx.status = 500;
-      ctx.body = { error: error.message };
+      ctx.body = { error: error.message || "Unknown error" };
     }
   },
 
@@ -229,29 +250,48 @@ const controller = ({ strapi }) => ({
     const contentType = pluginConfig.contentType || 'api::page.page';
     const dynamicZoneField = pluginConfig.dynamicZoneField || 'sections';
     
+    // Content type'ın kind'ını kontrol et
+    const contentTypeModel = strapi.contentTypes[contentType];
+    const isSingleType = contentTypeModel?.kind === 'singleType';
+    
     let page;
-    const numericId = parseInt(pageId);
-    if (!isNaN(numericId)) {
+    
+    if (isSingleType) {
+      // SingleType için direkt findOne kullan (ID gerekmez)
       try {
-        page = await strapi.entityService.findOne(contentType, numericId, {
+        page = await strapi.entityService.findOne(contentType, {
           populate: [dynamicZoneField],
         });
       } catch (error) {
-        // Try with documentId
-      }
-    }
-    
-    if (!page) {
-      try {
-        const pages = await strapi.entityService.findMany(contentType, {
-          filters: { documentId: pageId },
-          populate: [dynamicZoneField],
-        });
-        page = pages[0];
-      } catch (err) {
         ctx.status = 404;
         ctx.body = { error: "Page not found: " + pageId, data: null };
         return;
+      }
+    } else {
+      // CollectionType için documentId ile bul
+      const numericId = parseInt(pageId);
+      if (!isNaN(numericId)) {
+        try {
+          page = await strapi.entityService.findOne(contentType, numericId, {
+            populate: [dynamicZoneField],
+          });
+        } catch (error) {
+          // Try with documentId
+        }
+      }
+      
+      if (!page) {
+        try {
+          const pages = await strapi.entityService.findMany(contentType, {
+            filters: { documentId: pageId },
+            populate: [dynamicZoneField],
+          });
+          page = pages[0];
+        } catch (err) {
+          ctx.status = 404;
+          ctx.body = { error: "Page not found: " + pageId, data: null };
+          return;
+        }
       }
     }
     
@@ -307,7 +347,23 @@ const controller = ({ strapi }) => ({
     const contentType = pluginConfig.contentType || 'api::page.page';
     const dynamicZoneField = pluginConfig.dynamicZoneField || 'sections';
     
+    // Content type'ın kind'ını kontrol et
+    const contentTypeModel = strapi.contentTypes[contentType];
+    const isSingleType = contentTypeModel?.kind === 'singleType';
+    
     const findPage = async (id) => {
+      if (isSingleType) {
+        // SingleType için direkt findOne kullan
+        try {
+          return await strapi.entityService.findOne(contentType, {
+            populate: [dynamicZoneField],
+          });
+        } catch (error) {
+          return null;
+        }
+      }
+      
+      // CollectionType için documentId ile bul
       const numericId = parseInt(id);
       if (!isNaN(numericId)) {
         try {
@@ -436,7 +492,23 @@ const controller = ({ strapi }) => ({
     const contentType = pluginConfig.contentType || 'api::page.page';
     const dynamicZoneField = pluginConfig.dynamicZoneField || 'sections';
     
+    // Content type'ın kind'ını kontrol et
+    const contentTypeModel = strapi.contentTypes[contentType];
+    const isSingleType = contentTypeModel?.kind === 'singleType';
+    
     const findPage = async (id) => {
+      if (isSingleType) {
+        // SingleType için direkt findOne kullan
+        try {
+          return await strapi.entityService.findOne(contentType, {
+            populate: [dynamicZoneField],
+          });
+        } catch (error) {
+          return null;
+        }
+      }
+      
+      // CollectionType için documentId ile bul
       const numericId = parseInt(id);
       if (!isNaN(numericId)) {
         try {
@@ -495,45 +567,18 @@ const controller = ({ strapi }) => ({
     const pluginConfig = strapi.config.get('plugin::copy-any-component') || {};
     const contentType = pluginConfig.contentType || 'api::page.page';
     
-    const findPage = async (id) => {
-      const numericId = parseInt(id);
-      if (!isNaN(numericId)) {
-        try {
-          return await strapi.entityService.findOne(contentType, numericId);
-        } catch (error) {
-          // Try with documentId
-        }
-      }
-      
-      try {
-        const pages = await strapi.entityService.findMany(contentType, {
-          filters: { documentId: id },
-        });
-        return pages[0];
-      } catch (err) {
-        return null;
-      }
-    };
-    
-    const page = await findPage(pageId);
-    
-    if (!page) {
-      ctx.status = 404;
-      ctx.body = { error: "Page not found: " + pageId, data: null };
-      return;
-    }
-
     try {
       // Strapi 5'te documentService kullanılıyor
+      // pageId zaten documentId string'i (frontend'den gönderiliyor)
       const documentService = strapi.documents(contentType);
-      const publishedPage = await documentService.publish(page.documentId || page.id);
+      const publishedPage = await documentService.publish(pageId);
 
       ctx.body = {
         error: null,
         data: {
           pageId: publishedPage.id,
           documentId: publishedPage.documentId,
-          pageTitle: publishedPage.title,
+          pageTitle: publishedPage.title || publishedPage.attributes?.title,
           publishedAt: publishedPage.publishedAt,
         },
       };

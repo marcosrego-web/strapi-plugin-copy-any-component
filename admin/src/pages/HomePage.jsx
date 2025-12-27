@@ -81,7 +81,7 @@ const HomePage = () => {
   // Content type yapılandırmasını güncelle
   const handleConfigUpdate = async () => {
     if (!selectedContentType || !selectedDynamicZone) {
-      setMessage({ type: "warning", text: "Lütfen content type ve dynamic zone seçin" });
+      setMessage({ type: "warning", text: "Please select content type and dynamic zone" });
       return;
     }
     
@@ -97,7 +97,7 @@ const HomePage = () => {
           contentType: selectedContentType,
           dynamicZoneField: selectedDynamicZone,
         });
-        setMessage({ type: "success", text: "Yapılandırma güncellendi! Sayfalar yeniden yükleniyor..." });
+        setMessage({ type: "success", text: "Configuration updated! Pages are reloading..." });
         
         // Sayfaları yeniden yükle
         const pagesRes = await get(`/${PLUGIN_ID}/pages`);
@@ -109,7 +109,7 @@ const HomePage = () => {
         setShowSettings(false);
       }
     } catch (error) {
-      setMessage({ type: "danger", text: "Yapılandırma güncellenemedi: " + (error.message || "Bilinmeyen hata") });
+      setMessage({ type: "danger", text: "Failed to update configuration: " + (error.message || "Unknown error") });
     } finally {
       setConfigLoading(false);
     }
@@ -395,25 +395,25 @@ const HomePage = () => {
               onClick={() => setShowSettings(!showSettings)}
               size="S"
             >
-              ⚙️ {showSettings ? "Ayarları Kapat" : "Content Type Ayarları"}
+              ⚙️ {showSettings ? "Close Settings" : "Content Type Settings"}
             </Button>
           </Flex>
           
-          {/* Content Type Ayarları */}
+          {/* Content Type Settings */}
           {showSettings && (
             <Box marginBottom={6} padding={4} background="neutral100" hasRadius>
               <Typography variant="beta" tag="h3" marginBottom={4}>
-                📋 Content Type Yapılandırması
+                📋 Content Type Configuration
               </Typography>
               <Typography variant="omega" textColor="neutral600" marginBottom={4}>
-                Farklı bir content type veya dynamic zone kullanmak için aşağıdan seçim yapın. 
-                Ayarlarınız <strong>otomatik olarak kaydedilir</strong> ve Strapi yeniden başlatıldığında da geçerli olur. 
-                Kod düzenlemeye gerek yok! ✨
+                Select below to use a different content type or dynamic zone. 
+                Your settings are <strong>automatically saved</strong> and will persist even after Strapi restarts. 
+                No code editing required! ✨
               </Typography>
               
               {contentTypes.length === 0 ? (
-                <Alert variant="warning" title="Uyarı">
-                  Dynamic zone içeren content type bulunamadı. Lütfen önce bir content type oluşturun.
+                <Alert variant="warning" title="Warning">
+                  No content types with dynamic zones found. Please create a content type first.
                 </Alert>
               ) : (
                 <Grid.Root gap={4}>
@@ -434,7 +434,7 @@ const HomePage = () => {
                             setSelectedDynamicZone('');
                           }
                         }}
-                        placeholder="Content type seçin..."
+                        placeholder="Select content type..."
                       >
                         {contentTypes.map(ct => (
                           <SingleSelectOption key={ct.uid} value={ct.uid}>
@@ -453,7 +453,7 @@ const HomePage = () => {
                       <SingleSelect
                         value={selectedDynamicZone}
                         onChange={setSelectedDynamicZone}
-                        placeholder="Dynamic zone seçin..."
+                        placeholder="Select dynamic zone..."
                         disabled={!selectedContentType}
                       >
                         {getAvailableDynamicZones().map(dz => (
@@ -478,7 +478,7 @@ const HomePage = () => {
                            selectedDynamicZone === currentConfig.dynamicZoneField)}
                         fullWidth
                       >
-                        💾 Kaydet
+                        💾 Save
                       </Button>
                     </Box>
                   </Grid.Item>
@@ -488,7 +488,7 @@ const HomePage = () => {
               {contentTypes.length > 0 && (
                 <Box marginTop={4} padding={3} background="neutral0" hasRadius>
                   <Typography variant="sigma" textColor="neutral700" marginBottom={2}>
-                    💡 Mevcut Content Type'lar ve Dynamic Zone'ları:
+                    💡 Available Content Types and Dynamic Zones:
             </Typography>
                   <Box style={{ maxHeight: '150px', overflowY: 'auto' }}>
                     {contentTypes.map(ct => (
