@@ -1,6 +1,6 @@
 # Copy Any Component Plugin for Strapi 5
 
-[![npm version](https://img.shields.io/npm/v/@strapi/plugin-copy-any-component.svg)](https://www.npmjs.com/package/@strapi/plugin-copy-any-component)
+[![npm version](https://img.shields.io/npm/v/strapi-plugin-copy-any-component.svg)](https://www.npmjs.com/package/strapi-plugin-copy-any-component)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A powerful Strapi plugin that allows you to copy and reorder components (sections) between pages using an intuitive drag-and-drop interface. **No code required!** Works with any content type and dynamic zone.
