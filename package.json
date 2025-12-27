@@ -26,12 +26,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/strapi-plugin-copy-any-component.git"
+    "url": "https://github.com/metehankasapp/strapi-plugin-copy-any-component.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/strapi-plugin-copy-any-component/issues"
+    "url": "https://github.com/metehankasapp/strapi-plugin-copy-any-component/issues"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/strapi-plugin-copy-any-component#readme",
+  "homepage": "https://github.com/metehankasapp/strapi-plugin-copy-any-component#readme",
   "files": [
     "strapi-admin.js",
     "strapi-server.js",
