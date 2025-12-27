@@ -1,6 +1,6 @@
 {
   "name": "strapi-plugin-copy-any-component",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "A powerful Strapi plugin that allows you to copy and reorder components (sections) between pages using an intuitive drag-and-drop interface. Works with any content type and dynamic zone - no code required!",
   "keywords": [
     "strapi",
@@ -36,19 +36,19 @@
     "strapi-admin.js",
     "strapi-server.js",
     "admin",
-    "server",
-    "README.md",
-    "INSTALLATION.md",
-    "USAGE.md",
-    "QUICK_START.md",
-    "TESTING.md"
+    "server/src/services",
+    "README.md"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {},
   "peerDependencies": {
-    "@strapi/strapi": "^5.0.0"
+    "@strapi/strapi": "^5.0.0",
+    "@strapi/design-system": "^2.0.0-rc.1 || ^2.0.0",
+    "@strapi/icons": "^2.0.0-rc.1 || ^2.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "author": {
     "name": "Metehan Kasap",
@@ -56,7 +56,7 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0 <=20.x.x",
+    "node": ">=18.0.0 <=24.x.x",
     "npm": ">=6.0.0"
   }
 }
