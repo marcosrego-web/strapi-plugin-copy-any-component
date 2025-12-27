@@ -58,14 +58,14 @@ Settings are **automatically saved** and persist even after Strapi restarts! No 
 ### NPM Install (Recommended)
 
 ```bash
-npm install @strapi/plugin-copy-any-component
+npm install strapi-plugin-copy-any-component
 ```
 
 ### Manual Install
 
 1. **Install the plugin:**
    ```bash
-   npm install @strapi/plugin-copy-any-component
+   npm install strapi-plugin-copy-any-component
    ```
 
 2. **Register the plugin** in `config/plugins.ts`:
@@ -73,7 +73,7 @@ npm install @strapi/plugin-copy-any-component
    export default () => ({
      'copy-any-component': {
        enabled: true,
-       resolve: './node_modules/@strapi/plugin-copy-any-component',
+       resolve: './node_modules/strapi-plugin-copy-any-component',
        // Optional: Set defaults (can be changed via admin panel)
        config: {
          contentType: 'api::page.page',
