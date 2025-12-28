@@ -32,7 +32,7 @@
   "bugs": {
     "url": "https://github.com/metehankasapp/strapi-plugin-copy-any-component/issues"
   },
-  "homepage": "https://github.com/metehankasapp/strapi-plugin-copy-any-component#readme",
+  "homepage": "https://strapi-plugin-copy-component.web.app",
   "files": [
     "strapi-admin.js",
     "strapi-server.js",
