@@ -76,16 +76,18 @@ const HomePage = () => {
         console.log('currentUserRoles:'+currentUserRoles);
 
         // Fetch pages with creator info
-        const { data } = await get(`/${PLUGIN_ID}/pages?populate=createdBy.roles`);
-        const pagesWithCreator = data?.data || [];
+        //const { data } = await get(`/${PLUGIN_ID}/pages?populate=createdBy.roles`);
+        //const pagesWithCreator = data?.data || [];
 
         // Filter pages
+        /*
         const filteredPages = pagesWithCreator.filter(page => {
           const creatorRoles = page.attributes?.createdBy?.roles?.map(role => role.code) || [];
           return creatorRoles.some(role => currentUserRoles.includes(role));
         });
 
         setPages(filteredPages);
+        */
       } catch (error) {
         setMessage({ type: "danger", text: "Failed to load pages: " + (error.message || "Unknown error") });
       }
