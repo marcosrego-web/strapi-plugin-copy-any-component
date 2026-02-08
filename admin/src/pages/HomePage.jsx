@@ -68,7 +68,7 @@ const HomePage = () => {
   // Load pages
   useEffect(() => {
     const fetchPages = async () => {
-      try {
+      //try {
         // Get current user roles
         const { data: userData } = await get('/admin/users/me');
         const currentUserRoles = userData.roles.map(role => role.code);
@@ -88,9 +88,9 @@ const HomePage = () => {
 
         setPages(filteredPages);
         */
-      } catch (error) {
+      /*} catch (error) {
         setMessage({ type: "danger", text: "Failed to load pages: " + (error.message || "Unknown error") });
-      }
+      }*/
     };
     fetchPages();
   }, [get, currentConfig]);
