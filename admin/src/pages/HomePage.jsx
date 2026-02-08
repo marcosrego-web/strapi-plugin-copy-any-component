@@ -36,7 +36,7 @@ const HomePage = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  
+
   // Content Type configuration
   const [contentTypes, setContentTypes] = useState([]);
   const [currentConfig, setCurrentConfig] = useState({ contentType: '', dynamicZoneField: '' });
@@ -44,7 +44,7 @@ const HomePage = () => {
   const [selectedDynamicZone, setSelectedDynamicZone] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
-  
+
   const { get, post, put } = useFetchClient();
 
   // Load content types
@@ -69,36 +69,49 @@ const HomePage = () => {
   useEffect(() => {
     const fetchPages = async () => {
       try {
-        const { data } = await get(`/${PLUGIN_ID}/pages`);
-        setPages(data?.data || []);
+        // Get current user roles
+        const { data: userData } = await get('/admin/users/me');
+        const currentUserRoles = userData.roles.map(role => role.code);
+
+        // Fetch pages with creator info
+        const { data } = await get(`/${PLUGIN_ID}/pages?populate=createdBy.roles`);
+        const pagesWithCreator = data?.data || [];
+
+        // Filter pages
+        const filteredPages = pagesWithCreator.filter(page => {
+          const creatorRoles = page.attributes?.createdBy?.roles?.map(role => role.code) || [];
+          return creatorRoles.some(role => currentUserRoles.includes(role));
+        });
+
+        setPages(filteredPages);
       } catch (error) {
         setMessage({ type: "danger", text: "Failed to load pages: " + (error.message || "Unknown error") });
       }
     };
     fetchPages();
   }, [get, currentConfig]);
-  
+
   // Update content type configuration
   const handleConfigUpdate = async () => {
     if (!selectedContentType || !selectedDynamicZone) {
       setMessage({ type: "warning", text: "Please select content type and dynamic zone" });
       return;
     }
-    
+
     setConfigLoading(true);
     try {
       const { data } = await put(`/${PLUGIN_ID}/config`, {
         contentType: selectedContentType,
         dynamicZoneField: selectedDynamicZone,
       });
-      
+
       if (data?.data) {
         setCurrentConfig({
           contentType: selectedContentType,
           dynamicZoneField: selectedDynamicZone,
         });
         setMessage({ type: "success", text: "Configuration updated! Pages are reloading..." });
-        
+
         // Reload pages
         const pagesRes = await get(`/${PLUGIN_ID}/pages`);
         setPages(pagesRes.data?.data || []);
@@ -114,7 +127,7 @@ const HomePage = () => {
       setConfigLoading(false);
     }
   };
-  
+
   // Get dynamic zones based on selected content type
   const getAvailableDynamicZones = () => {
     const ct = contentTypes.find(c => c.uid === selectedContentType);
@@ -182,7 +195,7 @@ const HomePage = () => {
     setDraggedSource(source);
     e.dataTransfer.effectAllowed = source === 'source' ? "copy" : "move";
     e.dataTransfer.setData("text/plain", JSON.stringify({ index, source }));
-    
+
     const dragImage = e.target.cloneNode(true);
     dragImage.style.opacity = "0.8";
     dragImage.style.position = "absolute";
@@ -247,7 +260,7 @@ const HomePage = () => {
       const newSections = [...targetSections];
       const [movedSection] = newSections.splice(index, 1);
       newSections.splice(dropIndex, 0, movedSection);
-      
+
       setTargetSections(newSections);
       setHasUnsavedChanges(true);
       setDraggedIndex(null);
@@ -281,7 +294,7 @@ const HomePage = () => {
         setCopyDetails(data.data.copiedDetails || []);
         setHasUnsavedChanges(true);
         setShowDetailsModal(true);
-        
+
         await loadTargetSections();
         if (isDuplicate) {
           await loadSourceSections();
@@ -301,12 +314,12 @@ const HomePage = () => {
 
   const getPageTitle = (page) => {
     // Different content types may have different field names
-    return page.attributes?.title || page.title || 
-           page.attributes?.name || page.name ||
-           page.attributes?.heading || page.heading ||
-           page.attributes?.label || page.label ||
-           page.attributes?.slug || page.slug ||
-           `ID: ${page.id}`;
+    return page.attributes?.title || page.title ||
+      page.attributes?.name || page.name ||
+      page.attributes?.heading || page.heading ||
+      page.attributes?.label || page.label ||
+      page.attributes?.slug || page.slug ||
+      `ID: ${page.id}`;
   };
 
   const handlePublish = useCallback(async () => {
@@ -390,15 +403,15 @@ const HomePage = () => {
                 </Flex>
               )}
             </Box>
-            <Button 
-              variant={showSettings ? "secondary" : "tertiary"} 
+            <Button
+              variant={showSettings ? "secondary" : "tertiary"}
               onClick={() => setShowSettings(!showSettings)}
               size="S"
             >
               ⚙️ {showSettings ? "Close Settings" : "Content Type Settings"}
             </Button>
           </Flex>
-          
+
           {/* Content Type Settings */}
           {showSettings && (
             <Box marginBottom={6} padding={4} background="neutral100" hasRadius>
@@ -406,11 +419,11 @@ const HomePage = () => {
                 📋 Content Type Configuration
               </Typography>
               <Typography variant="omega" textColor="neutral600" marginBottom={4}>
-                Select below to use a different content type or dynamic zone. 
-                Your settings are <strong>automatically saved</strong> and will persist even after Strapi restarts. 
+                Select below to use a different content type or dynamic zone.
+                Your settings are <strong>automatically saved</strong> and will persist even after Strapi restarts.
                 No code editing required! ✨
               </Typography>
-              
+
               {contentTypes.length === 0 ? (
                 <Alert variant="warning" title="Warning">
                   No content types with dynamic zones found. Please create a content type first.
@@ -444,7 +457,7 @@ const HomePage = () => {
                       </SingleSelect>
                     </Box>
                   </Grid.Item>
-                  
+
                   <Grid.Item col={4} s={12}>
                     <Box>
                       <Typography variant="sigma" textColor="neutral700" marginBottom={2}>
@@ -464,18 +477,18 @@ const HomePage = () => {
                       </SingleSelect>
                     </Box>
                   </Grid.Item>
-                  
+
                   <Grid.Item col={3} s={12}>
                     <Box>
                       <Typography variant="sigma" textColor="neutral700" marginBottom={2}>
                         &nbsp;
                       </Typography>
-                      <Button 
-                        onClick={handleConfigUpdate} 
+                      <Button
+                        onClick={handleConfigUpdate}
                         loading={configLoading}
-                        disabled={!selectedContentType || !selectedDynamicZone || 
-                          (selectedContentType === currentConfig.contentType && 
-                           selectedDynamicZone === currentConfig.dynamicZoneField)}
+                        disabled={!selectedContentType || !selectedDynamicZone ||
+                          (selectedContentType === currentConfig.contentType &&
+                            selectedDynamicZone === currentConfig.dynamicZoneField)}
                         fullWidth
                       >
                         💾 Save
@@ -484,12 +497,12 @@ const HomePage = () => {
                   </Grid.Item>
                 </Grid.Root>
               )}
-              
+
               {contentTypes.length > 0 && (
                 <Box marginTop={4} padding={3} background="neutral0" hasRadius>
                   <Typography variant="sigma" textColor="neutral700" marginBottom={2}>
                     💡 Available Content Types and Dynamic Zones:
-            </Typography>
+                  </Typography>
                   <Box style={{ maxHeight: '150px', overflowY: 'auto' }}>
                     {contentTypes.map(ct => (
                       <Flex key={ct.uid} gap={2} marginBottom={1} alignItems="center">
@@ -498,10 +511,10 @@ const HomePage = () => {
                         </Badge>
                         <Typography variant="omega" textColor="neutral600">
                           → {ct.dynamicZones.map(dz => dz.name).join(', ')}
-            </Typography>
+                        </Typography>
                       </Flex>
                     ))}
-          </Box>
+                  </Box>
                 </Box>
               )}
             </Box>
@@ -589,86 +602,86 @@ const HomePage = () => {
                       <Card>
                         <Box padding={4}>
                           <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
-                        <Typography variant="beta" fontWeight="bold">
-                          {detail.componentType.replace("sections.", "").replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                        </Typography>
+                            <Typography variant="beta" fontWeight="bold">
+                              {detail.componentType.replace("sections.", "").replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                            </Typography>
                             <Flex gap={2}>
                               <Badge>
-                          {detail.totalFields} fields • {detail.totalMedia} media
-                        </Badge>
+                                {detail.totalFields} fields • {detail.totalMedia} media
+                              </Badge>
                               {detail.totalRemoved > 0 && (
                                 <Badge variant="secondary">
                                   {detail.totalRemoved} system
                                 </Badge>
                               )}
                             </Flex>
-                      </Flex>
+                          </Flex>
 
-                      {detail.mediaFields.length > 0 && (
-                        <Box marginBottom={4}>
-                          <Typography variant="sigma" textColor="neutral700" marginBottom={2}>
-                            📷 Media Files ({detail.totalMedia}):
-                          </Typography>
-                          {detail.mediaFields.map((media, mIdx) => (
-                                <Box key={mIdx} padding={3} marginBottom={2} background="neutral100" hasRadius>
-                              <Typography variant="omega" fontWeight="bold" marginBottom={1}>
-                                {media.path}:
+                          {detail.mediaFields.length > 0 && (
+                            <Box marginBottom={4}>
+                              <Typography variant="sigma" textColor="neutral700" marginBottom={2}>
+                                📷 Media Files ({detail.totalMedia}):
                               </Typography>
-                              {media.items.map((item, iIdx) => (
+                              {detail.mediaFields.map((media, mIdx) => (
+                                <Box key={mIdx} padding={3} marginBottom={2} background="neutral100" hasRadius>
+                                  <Typography variant="omega" fontWeight="bold" marginBottom={1}>
+                                    {media.path}:
+                                  </Typography>
+                                  {media.items.map((item, iIdx) => (
                                     <Box key={iIdx} padding={2} marginTop={1} background="neutral0" hasRadius>
-                                  <Flex alignItems="center" gap={2}>
-                                    <Typography variant="omega" textColor="success600">
-                                      ✓
-                                    </Typography>
-                                    <Box>
-                                      <Typography variant="omega" fontWeight="semiBold">
-                                        {item.name}
-                                      </Typography>
-                                      <Typography variant="omega" textColor="neutral600" fontSize={1}>
-                                        {item.mime} • ID: {item.id}
-                                      </Typography>
+                                      <Flex alignItems="center" gap={2}>
+                                        <Typography variant="omega" textColor="success600">
+                                          ✓
+                                        </Typography>
+                                        <Box>
+                                          <Typography variant="omega" fontWeight="semiBold">
+                                            {item.name}
+                                          </Typography>
+                                          <Typography variant="omega" textColor="neutral600" fontSize={1}>
+                                            {item.mime} • ID: {item.id}
+                                          </Typography>
+                                        </Box>
+                                      </Flex>
                                     </Box>
-                                  </Flex>
+                                  ))}
                                 </Box>
                               ))}
                             </Box>
-                          ))}
-                        </Box>
-                      )}
+                          )}
 
-                      {detail.fields.length > 0 && (
+                          {detail.fields.length > 0 && (
                             <Box marginBottom={4}>
-                          <Typography variant="sigma" textColor="neutral700" marginBottom={2}>
-                            📝 Fields ({detail.totalFields}):
-                          </Typography>
-                          <Box style={{ maxHeight: "300px", overflowY: "auto" }}>
-                            {detail.fields.slice(0, 20).map((field, fIdx) => (
-                              <Box key={fIdx} padding={2} marginBottom={1} background="neutral0" hasRadius>
-                                <Flex alignItems="center" gap={2}>
-                                  <Typography variant="omega" textColor="success600">
-                                    ✓
-                                  </Typography>
-                                  <Box style={{ flex: 1 }}>
-                                    <Typography variant="omega" fontWeight="semiBold">
-                                      {field.path}
-                                    </Typography>
-                                    <Typography variant="omega" textColor="neutral600" fontSize={1}>
-                                      Type: {field.type}
-                                      {field.value !== undefined && ` • Value: ${String(field.value).substring(0, 50)}`}
-                                      {field.count !== undefined && ` • Count: ${field.count}`}
-                                    </Typography>
-                                  </Box>
-                                </Flex>
-                              </Box>
-                            ))}
-                            {detail.fields.length > 20 && (
-                              <Typography variant="omega" textColor="neutral600" marginTop={2}>
-                                ... and {detail.fields.length - 20} more fields
+                              <Typography variant="sigma" textColor="neutral700" marginBottom={2}>
+                                📝 Fields ({detail.totalFields}):
                               </Typography>
-                            )}
-                          </Box>
-                        </Box>
-                      )}
+                              <Box style={{ maxHeight: "300px", overflowY: "auto" }}>
+                                {detail.fields.slice(0, 20).map((field, fIdx) => (
+                                  <Box key={fIdx} padding={2} marginBottom={1} background="neutral0" hasRadius>
+                                    <Flex alignItems="center" gap={2}>
+                                      <Typography variant="omega" textColor="success600">
+                                        ✓
+                                      </Typography>
+                                      <Box style={{ flex: 1 }}>
+                                        <Typography variant="omega" fontWeight="semiBold">
+                                          {field.path}
+                                        </Typography>
+                                        <Typography variant="omega" textColor="neutral600" fontSize={1}>
+                                          Type: {field.type}
+                                          {field.value !== undefined && ` • Value: ${String(field.value).substring(0, 50)}`}
+                                          {field.count !== undefined && ` • Count: ${field.count}`}
+                                        </Typography>
+                                      </Box>
+                                    </Flex>
+                                  </Box>
+                                ))}
+                                {detail.fields.length > 20 && (
+                                  <Typography variant="omega" textColor="neutral600" marginTop={2}>
+                                    ... and {detail.fields.length - 20} more fields
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Box>
+                          )}
 
                           {detail.removedFields && detail.removedFields.length > 0 && (
                             <Box>
@@ -695,8 +708,8 @@ const HomePage = () => {
                                           {field.path}
                                         </Typography>
                                         <Typography variant="omega" textColor="neutral500" style={{ fontSize: '11px' }}>
-                                          {field.reason === 'System field (automatically removed)' 
-                                            ? 'System field - New ID will be assigned' 
+                                          {field.reason === 'System field (automatically removed)'
+                                            ? 'System field - New ID will be assigned'
                                             : 'Nested ID - Will be automatically created'}
                                         </Typography>
                                       </Box>
@@ -707,11 +720,11 @@ const HomePage = () => {
                             </Box>
                           )}
 
-                      {detail.fields.length === 0 && detail.mediaFields.length === 0 && (
-                        <Typography variant="omega" textColor="neutral600">
-                          No fields detected in this component
-                        </Typography>
-                      )}
+                          {detail.fields.length === 0 && detail.mediaFields.length === 0 && (
+                            <Typography variant="omega" textColor="neutral600">
+                              No fields detected in this component
+                            </Typography>
+                          )}
                         </Box>
                       </Card>
                     </Box>
@@ -736,29 +749,29 @@ const HomePage = () => {
 
           <Grid.Root gap={4}>
             <Grid.Item col={6} xs={12}>
-              <Card style={{ height: "100%",width: "100%" }}> 
+              <Card style={{ height: "100%", width: "100%" }}>
                 <Box padding={4}>
                   <Typography variant="delta" tag="h2" marginBottom={4}>
-                Source Page
-              </Typography>
-              
-              <Box marginBottom={4}>
-                <SingleSelect
-                  label="Select source page"
-                  placeholder="Choose page..."
-                  value={sourcePageId}
-                  onChange={setSourcePageId}
-                >
-                  {pages.map((page) => {
-                    const pageId = page.documentId || page.id;
-                    return (
-                      <SingleSelectOption key={pageId} value={pageId}>
-                        {getPageTitle(page)}
-                      </SingleSelectOption>
-                    );
-                  })}
-                </SingleSelect>
-              </Box>
+                    Source Page
+                  </Typography>
+
+                  <Box marginBottom={4}>
+                    <SingleSelect
+                      label="Select source page"
+                      placeholder="Choose page..."
+                      value={sourcePageId}
+                      onChange={setSourcePageId}
+                    >
+                      {pages.map((page) => {
+                        const pageId = page.documentId || page.id;
+                        return (
+                          <SingleSelectOption key={pageId} value={pageId}>
+                            {getPageTitle(page)}
+                          </SingleSelectOption>
+                        );
+                      })}
+                    </SingleSelect>
+                  </Box>
 
                   <Box
                     style={{
@@ -770,35 +783,35 @@ const HomePage = () => {
                     background="neutral100"
                     hasRadius
                   >
-                {loadingSourceSections ? (
+                    {loadingSourceSections ? (
                       <Typography>Loading...</Typography>
-                ) : sourceSections.length > 0 ? (
-                  <>
+                    ) : sourceSections.length > 0 ? (
+                      <>
                         <Typography variant="sigma" textColor="neutral600" marginBottom={3}>
-                      {sourceSections.length} SECTION(S) • DRAG TO COPY →
-                    </Typography>
-                    {sourceSections.map((section, index) => (
+                          {sourceSections.length} SECTION(S) • DRAG TO COPY →
+                        </Typography>
+                        {sourceSections.map((section, index) => (
                           <Card
-                        key={index}
+                            key={index}
                             style={{
                               cursor: "grab",
                               opacity: draggedIndex === index && draggedSource === 'source' ? 0.5 : 1,
                               marginBottom: 3,
                             }}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, index, 'source')}
-                        onDragEnd={handleDragEnd}
-                      >
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, index, 'source')}
+                            onDragEnd={handleDragEnd}
+                          >
                             <Box padding={3}>
-                        <Flex justifyContent="space-between" alignItems="center">
+                              <Flex justifyContent="space-between" alignItems="center">
                                 <Box style={{ flex: 1 }}>
                                   <Badge>
-                              {getComponentName(section)}
-                            </Badge>
+                                    {getComponentName(section)}
+                                  </Badge>
                                   <Typography variant="omega" marginTop={2} tag="p">
-                              {getComponentPreview(section)}
-                            </Typography>
-                          </Box>
+                                    {getComponentPreview(section)}
+                                  </Typography>
+                                </Box>
                                 <IconButton
                                   variant="ghost"
                                   onClick={(e) => e.preventDefault()}
@@ -807,12 +820,12 @@ const HomePage = () => {
                                 >
                                   <Drag />
                                 </IconButton>
-                        </Flex>
+                              </Flex>
                             </Box>
                           </Card>
-                    ))}
-                  </>
-                ) : sourcePageId ? (
+                        ))}
+                      </>
+                    ) : sourcePageId ? (
                       <Typography textColor="neutral600">No sections in this page</Typography>
                     ) : (
                       <Typography textColor="neutral600">Select a source page</Typography>
@@ -823,49 +836,49 @@ const HomePage = () => {
             </Grid.Item>
 
             <Grid.Item col={6} xs={12}>
-              <Card style={{ height: "100%",width: "100%" }}>
+              <Card style={{ height: "100%", width: "100%" }}>
                 <Box padding={4}>
-              <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
+                  <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
                     <Typography variant="delta" tag="h2">
-                  Target Page
-                </Typography>
-                {hasUnsavedChanges && targetPageId && (
-                  <Button
-                    onClick={handlePublish}
-                    loading={publishing}
-                    variant="default"
-                    size="S"
-                  >
-                    Publish
-                  </Button>
-                )}
-              </Flex>
-              
-              {hasUnsavedChanges && (
+                      Target Page
+                    </Typography>
+                    {hasUnsavedChanges && targetPageId && (
+                      <Button
+                        onClick={handlePublish}
+                        loading={publishing}
+                        variant="default"
+                        size="S"
+                      >
+                        Publish
+                      </Button>
+                    )}
+                  </Flex>
+
+                  {hasUnsavedChanges && (
                     <Box marginBottom={4} padding={3} background="warning100" hasRadius>
-                  <Typography variant="omega" textColor="warning700">
-                    ⚠️ You have unsaved changes. Click Publish to save and publish.
-                  </Typography>
-                </Box>
-              )}
-              
-              <Box marginBottom={4}>
-                <SingleSelect
-                  label="Select target page"
-                  placeholder="Choose page..."
-                  value={targetPageId}
-                  onChange={setTargetPageId}
-                >
-                  {pages.map((page) => {
-                    const pageId = page.documentId || page.id;
-                    return (
-                      <SingleSelectOption key={pageId} value={pageId}>
-                        {getPageTitle(page)}
-                      </SingleSelectOption>
-                    );
-                  })}
-                </SingleSelect>
-              </Box>
+                      <Typography variant="omega" textColor="warning700">
+                        ⚠️ You have unsaved changes. Click Publish to save and publish.
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <Box marginBottom={4}>
+                    <SingleSelect
+                      label="Select target page"
+                      placeholder="Choose page..."
+                      value={targetPageId}
+                      onChange={setTargetPageId}
+                    >
+                      {pages.map((page) => {
+                        const pageId = page.documentId || page.id;
+                        return (
+                          <SingleSelectOption key={pageId} value={pageId}>
+                            {getPageTitle(page)}
+                          </SingleSelectOption>
+                        );
+                      })}
+                    </SingleSelect>
+                  </Box>
 
                   <Box
                     padding={3}
@@ -878,63 +891,63 @@ const HomePage = () => {
                       border: isDragOver ? "2px dashed" : "2px dashed transparent",
                       borderColor: isDragOver ? "primary500" : "transparent",
                     }}
-                onDragOver={(e) => {
-                  if (draggedSource === 'source') {
-                    handleDragOver(e);
-                  }
-                }}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => {
-                  if (draggedSource === 'source') {
-                    handleDrop(e, targetSections.length);
-                  }
-                }}
-              >
-                {loadingTargetSections ? (
+                    onDragOver={(e) => {
+                      if (draggedSource === 'source') {
+                        handleDragOver(e);
+                      }
+                    }}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => {
+                      if (draggedSource === 'source') {
+                        handleDrop(e, targetSections.length);
+                      }
+                    }}
+                  >
+                    {loadingTargetSections ? (
                       <Typography>Loading...</Typography>
-                ) : (
-                  <>
-                    {targetSections.length > 0 && (
+                    ) : (
+                      <>
+                        {targetSections.length > 0 && (
                           <Typography variant="sigma" textColor="neutral600" marginBottom={3}>
-                        {targetSections.length} SECTION(S) • Drag to reorder
-                      </Typography>
-                    )}
-                    
-                    {targetSections.map((section, index) => (
-                      <React.Fragment key={index}>
-                        {dragOverTargetIndex === index && (
+                            {targetSections.length} SECTION(S) • Drag to reorder
+                          </Typography>
+                        )}
+
+                        {targetSections.map((section, index) => (
+                          <React.Fragment key={index}>
+                            {dragOverTargetIndex === index && (
                               <Box
-                            style={{
-                              height: "4px",
+                                style={{
+                                  height: "4px",
                                   backgroundColor: "primary500",
                                   marginBottom: 2,
-                              borderRadius: "2px",
-                            }}
-                          />
-                        )}
+                                  borderRadius: "2px",
+                                }}
+                              />
+                            )}
                             <Card
-                          style={{
-                            cursor: draggedSource === 'target' ? "move" : "default",
-                            opacity: draggedIndex === index && draggedSource === 'target' ? 0.5 : 1,
+                              style={{
+                                cursor: draggedSource === 'target' ? "move" : "default",
+                                opacity: draggedIndex === index && draggedSource === 'target' ? 0.5 : 1,
                                 marginBottom: 3,
-                          }}
-                          draggable={true}
-                          onDragStart={(e) => handleDragStart(e, index, 'target')}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={(e) => handleDragOver(e, index)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, index)}
-                        >
+                              }}
+                              draggable={true}
+                              onDragStart={(e) => handleDragStart(e, index, 'target')}
+                              onDragEnd={handleDragEnd}
+                              onDragOver={(e) => handleDragOver(e, index)}
+                              onDragLeave={handleDragLeave}
+                              onDrop={(e) => handleDrop(e, index)}
+                            >
                               <Box padding={3}>
-                          <Flex justifyContent="space-between" alignItems="flex-start">
-                            <Box style={{ flex: 1 }}>
+                                <Flex justifyContent="space-between" alignItems="flex-start">
+                                  <Box style={{ flex: 1 }}>
                                     <Badge variant="secondary">
-                                {getComponentName(section)}
-                              </Badge>
+                                      {getComponentName(section)}
+                                    </Badge>
                                     <Typography variant="omega" marginTop={2} tag="p">
-                                {getComponentPreview(section)}
-                              </Typography>
-                            </Box>
+                                      {getComponentPreview(section)}
+                                    </Typography>
+                                  </Box>
                                   <IconButton
                                     variant="ghost"
                                     onClick={(e) => e.preventDefault()}
@@ -943,44 +956,44 @@ const HomePage = () => {
                                   >
                                     <Drag />
                                   </IconButton>
-                          </Flex>
+                                </Flex>
                               </Box>
                             </Card>
-                      </React.Fragment>
-                    ))}
-                    
-                    {dragOverTargetIndex === targetSections.length && (
+                          </React.Fragment>
+                        ))}
+
+                        {dragOverTargetIndex === targetSections.length && (
                           <Box
-                        style={{
-                          height: "4px",
+                            style={{
+                              height: "4px",
                               backgroundColor: "primary500",
                               marginTop: 2,
-                          borderRadius: "2px",
-                        }}
-                      />
-                    )}
+                              borderRadius: "2px",
+                            }}
+                          />
+                        )}
 
                         {isDragOver && targetSections.length === 0 && (
                           <Box padding={8} textAlign="center">
                             <Typography variant="omega" textColor="primary600">
-                          ↓ Drop here to copy section ↓
-                        </Typography>
+                              ↓ Drop here to copy section ↓
+                            </Typography>
                           </Box>
-                    )}
+                        )}
 
-                    {!isDragOver && targetSections.length === 0 && targetPageId && (
+                        {!isDragOver && targetSections.length === 0 && targetPageId && (
                           <Box padding={8} textAlign="center">
                             <Typography variant="omega" textColor="neutral600">
-                          No sections yet. Drag from source to add.
-                        </Typography>
+                              No sections yet. Drag from source to add.
+                            </Typography>
                           </Box>
-                    )}
+                        )}
 
-                    {!targetPageId && (
+                        {!targetPageId && (
                           <Typography textColor="neutral600">Select a target page</Typography>
+                        )}
+                      </>
                     )}
-                  </>
-                )}
                   </Box>
                 </Box>
               </Card>
